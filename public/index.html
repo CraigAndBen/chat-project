@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simple Chat</title>
+
+    <style>
+      :root {
+        --primary: #0084ff;
+        --bg: #f0f2f5;
+        --card: #ffffff;
+        --bubble-other: #ffffff;
+        --bubble-me: #e6f0ff;
+        --muted: #888888;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      .page {
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 28px 12px;
+        box-sizing: border-box;
+      }
+
+      .chat-card {
+        width: 600px;
+        max-width: 100%;
+        background: var(--card);
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(15, 30, 50, 0.06);
+        padding: 18px;
+        box-sizing: border-box;
+      }
+
+      h1 {
+        margin: 0 0 12px 0;
+        color: var(--primary);
+        font-size: 20px;
+      }
+
+      .top-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      #username {
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: 1px solid #e0e0e0;
+        outline: none;
+        width: 220px;
+        background: #fff;
+      }
+
+      #username:focus {
+        box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.07);
+        border-color: rgba(0, 132, 255, 0.3);
+      }
+
+      #chat {
+        border-radius: 10px;
+        height: 420px;
+        overflow-y: auto;
+        padding: 14px;
+        box-sizing: border-box;
+        background: linear-gradient(180deg, #f7f9fb 0%, #eef5ff 100%);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+      }
+
+      .msg {
+        margin: 8px 0;
+        max-width: 78%;
+        padding: 10px 14px;
+        border-radius: 14px;
+        clear: both;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+        line-height: 1.35;
+        word-wrap: break-word;
+      }
+
+      .msg strong {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+      }
+
+      .msg div {
+        white-space: pre-wrap;
+        line-height: 1.35;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.75rem;
+        display: block;
+        margin-top: 6px;
+        text-align: right;
+      }
+
+      /* Other people's messages (left) */
+      .msg.other {
+        background: var(--bubble-other);
+        float: left;
+        border-bottom-left-radius: 4px;
+      }
+
+      /* My own messages (right) */
+      .msg.me {
+        background: var(--bubble-me);
+        float: right;
+        border-bottom-right-radius: 4px;
+      }
+
+      .controls {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      #message {
+        flex: 1;
+        padding: 10px 12px;
+        border-radius: 20px;
+        border: 1px solid #e0e0e0;
+        outline: none;
+        background: #fff;
+      }
+
+      #message:focus {
+        box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.04);
+        border-color: rgba(0, 132, 255, 0.25);
+      }
+
+      #send {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      #send:hover {
+        filter: brightness(0.95);
+      }
+
+      @media (max-width: 520px) {
+        .chat-card {
+          padding: 12px;
+        }
+        #chat {
+          height: 320px;
+        }
+        #username {
+          width: 120px;
+        }
+        h1 {
+          font-size: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="chat-card">
+        <h1>Chat App</h1>
+
+        <div class="top-row">
+          <input id="username" placeholder="Your name" />
+        </div>
+
+        <div id="chat"></div>
+
+        <div class="controls">
+          <input id="message" placeholder="Type a message" />
+          <button id="send">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function escapeHTML(s) {
+        return s.replace(/[&<>"']/g, (m) => {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          }[m];
+        });
+      }
+
+      function formatDateTime(datetimeStr) {
+        const date = new Date(datetimeStr);
+        return date.toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
+
+      const chatBox = document.getElementById("chat");
+      const usernameInput = document.getElementById("username");
+      const messageInput = document.getElementById("message");
+
+      function addMessage(item) {
+        const row = document.createElement("div");
+
+        const myName = usernameInput.value.trim() || "Guest";
+        const isMe = item.username === myName;
+
+        row.className = "msg " + (isMe ? "me" : "other");
+        row.innerHTML = `
+          <strong>${escapeHTML(item.username)}</strong>
+          <div>${escapeHTML(item.message)}</div>
+          <span class="meta">${escapeHTML(formatDateTime(item.created_at))}</span>
+        `;
+
+        chatBox.appendChild(row);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      const ws = new WebSocket("ws://localhost:8080");
+      ws.onopen = () => console.log("Connected!");
+      ws.onmessage = (ev) => {
+        const data = JSON.parse(ev.data);
+        if (data.type === "message") addMessage(data);
+      };
+
+      document.getElementById("send").onclick = () => {
+        const username = usernameInput.value.trim() || "Guest";
+        const message = messageInput.value.trim();
+        if (!message) return;
+        ws.send(JSON.stringify({ type: "message", username, message }));
+        messageInput.value = "";
+      };
+    </script>
+  </body>
+</html>
